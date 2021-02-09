@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="snap_time_picker_dialog_width">300dp</dimen>
-    <dimen name="snap_time_picker_dialog_height">300dp</dimen>
+    <dimen name="snap_time_picker_dialog_height">340dp</dimen>
     <dimen name="snap_time_picker_button_minimum_width">64dp</dimen>
     <dimen name="snap_time_picker_margin_padding">8dp</dimen>
     <dimen name="snap_time_picker_margin_padding_large">16dp</dimen>

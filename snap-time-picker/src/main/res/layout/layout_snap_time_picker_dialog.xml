@@ -136,14 +136,14 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="@id/layout_time_container" />
 
-        <Button
+        <!-- <Button
                 android:id="@+id/button_cancel"
                 style="@style/SnapTimePicker.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/snap_time_picker_cancel"
                 app:layout_constraintBottom_toBottomOf="@id/button_confirm"
-                app:layout_constraintEnd_toStartOf="@id/button_confirm" />
+                app:layout_constraintEnd_toStartOf="@id/button_confirm" /> -->
 
         <Button
                 android:id="@+id/button_confirm"

@@ -5,12 +5,12 @@
 
     <style name="SnapTimePicker.Title">
         <item name="android:textColor">@color/snap_time_picker_white</item>
-        <item name="android:textSize">@dimen/snap_time_picker_text_size_large</item>
+        <item name="android:textSize">@dimen/snap_time_picker_text_size_extra_large</item>
     </style>
 
     <style name="SnapTimePicker.Content">
         <item name="android:textColor">@color/snap_time_picker_black</item>
-        <item name="android:textSize">@dimen/snap_time_picker_text_size_medium</item>
+        <item name="android:textSize">@dimen/snap_time_picker_text_size_extra_large</item>
     </style>
 
     <style name="SnapTimePicker.Button">

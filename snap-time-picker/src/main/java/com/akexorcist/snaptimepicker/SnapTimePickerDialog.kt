@@ -1,21 +1,25 @@
 package com.akexorcist.snaptimepicker
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import androidx.annotation.ColorRes
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProvider
+import androidx.core.view.updatePaddingRelative
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.akexorcist.snaptimepicker.databinding.LayoutSnapTimePickerDialogBinding
 import com.akexorcist.snaptimepicker.extension.SnapTimePickerViewModel
+
 
 @Suppress("unused")
 class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
@@ -23,10 +27,12 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
         LayoutSnapTimePickerDialogBinding.inflate(LayoutInflater.from(requireContext()))
     }
 
+    private val sharedViewModel: SnapTimePickerViewModel by viewModels(ownerProducer = { requireParentFragment() })
+
     private lateinit var hourAdapter: TimePickerAdapter
     private lateinit var minuteAdapter: TimePickerAdapter
-    private lateinit var hourLayoutManager: LinearLayoutManager
-    private lateinit var minuteLayoutManager: LinearLayoutManager
+    private lateinit var hourLayoutManager: CenterLinearLayoutManager
+    private lateinit var minuteLayoutManager: CenterLinearLayoutManager
     private lateinit var hourSnapHelper: LinearSnapHelper
     private lateinit var minuteSnapHelper: LinearSnapHelper
 
@@ -70,17 +76,17 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
         const val TAG = "SnapTimePickerDialog"
 
         private fun newInstance(
-            selectableTimeRange: TimeRange?,
-            preselectedTime: TimeValue?,
-            isUseViewModel: Boolean,
-            title: Int,
-            prefix: Int,
-            suffix: Int,
-            titleColor: Int,
-            themeColor: Int,
-            timeInterval: Int
+                selectableTimeRange: TimeRange?,
+                preselectedTime: TimeValue?,
+                isUseViewModel: Boolean,
+                title: Int,
+                prefix: Int,
+                suffix: Int,
+                titleColor: Int,
+                themeColor: Int,
+                timeInterval: Int
         ): SnapTimePickerDialog = SnapTimePickerDialog().apply {
-            isCancelable = false
+            isCancelable = true
             arguments = Bundle().apply {
                 putParcelable(EXTRA_SELECTABLE_TIME_RANGE, selectableTimeRange)
                 putParcelable(EXTRA_PRESELECTED_TIME, preselectedTime)
@@ -101,8 +107,8 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
         run {
             hourAdapter = TimePickerAdapter()
             minuteAdapter = TimePickerAdapter()
-            hourLayoutManager = LinearLayoutManager(context)
-            minuteLayoutManager = LinearLayoutManager(context)
+            hourLayoutManager = CenterLinearLayoutManager(requireContext())
+            minuteLayoutManager = CenterLinearLayoutManager(requireContext())
             hourSnapHelper = LinearSnapHelper()
             minuteSnapHelper = LinearSnapHelper()
             binding.recyclerViewHour.layoutManager = hourLayoutManager
@@ -123,25 +129,25 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
             if (titleColor != -1) {
                 context?.let { context ->
                     binding.textViewTitle.setTextColor(
-                        ContextCompat.getColor(
-                            context,
-                            titleColor
-                        )
+                            ContextCompat.getColor(
+                                    context,
+                                    titleColor
+                            )
                     )
                 }
             }
             if (themeColor != -1) {
                 context?.let { context ->
                     binding.buttonConfirm.setTextColor(ContextCompat.getColor(context, themeColor))
-                    binding.buttonCancel.setTextColor(ContextCompat.getColor(context, themeColor))
+                    // binding.buttonCancel.setTextColor(ContextCompat.getColor(context, themeColor))
                     binding.textViewTitle.setBackgroundColor(
-                        ContextCompat.getColor(context, themeColor)
+                            ContextCompat.getColor(context, themeColor)
                     )
                 }
             }
             run {
                 binding.buttonConfirm.setOnClickListener { onConfirmClick() }
-                binding.buttonCancel.setOnClickListener { onCancelClick() }
+                // binding.buttonCancel.setOnClickListener { onCancelClick() }
                 binding.recyclerViewHour.addOnScrollListener(hourScrollListener)
                 binding.recyclerViewMinute.addOnScrollListener(minuteScrollListener)
             }
@@ -463,6 +469,9 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
 
     private fun updateHourPosition(hourPosition: Int) {
         try {
+            if (hourPosition != -1) {
+                binding.recyclerViewHour.scrollToPosition(if (hourPosition > 0) hourPosition - 1 else 0)
+            }
             Handler(Looper.getMainLooper()).postDelayed({
                 if (hourPosition != -1) {
                     binding.recyclerViewHour.smoothScrollToPosition(hourPosition)
@@ -474,6 +483,9 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
 
     private fun updateMinutePosition(minutePosition: Int) {
         try {
+            if (minutePosition != -1) {
+                binding.recyclerViewMinute.scrollToPosition(if (minutePosition > 0) minutePosition - 1 else 0)
+            }
             Handler(Looper.getMainLooper()).postDelayed({
                 if (minutePosition != -1) {
                     binding.recyclerViewMinute.smoothScrollToPosition(minutePosition)
@@ -485,11 +497,9 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
 
     private fun useLiveDataAsCallback() {
         activity?.let { _ ->
-            val viewModel: SnapTimePickerViewModel =
-                ViewModelProvider(this).get(SnapTimePickerViewModel::class.java)
             this.listener = object : Listener {
                 override fun onTimePicked(hour: Int, minute: Int) {
-                    viewModel.onTimePicked(hour, minute)
+                    sharedViewModel.onTimePicked(hour, minute)
                 }
             }
         }
@@ -537,6 +547,53 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
         return startHour != -1 && startMinute != -1 &&
                 endHour != -1 && endMinute != -1 &&
                 (startHour > endHour || (startHour == endHour && startMinute > endMinute))
+    }
+
+    // For LinearSnapHelper to snap correctly at first / last items
+    //
+    // Reference:
+    // https://stackoverflow.com/questions/64853649/how-can-i-properly-center-the-first-and-last-items-in-a-horizontal-recyclerview
+
+    open class CenterLinearLayoutManager : LinearLayoutManager {
+        constructor(context: Context) : super(context)
+        constructor(context: Context, orientation: Int, reverseLayout: Boolean) : super(context, orientation, reverseLayout)
+        constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int, defStyleRes: Int) : super(context, attrs, defStyleAttr, defStyleRes)
+
+        private lateinit var recyclerView: RecyclerView
+
+        override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+            // always measure first item, its size determines starting offset
+            // this must be done before super.onLayoutChildren
+            if (childCount == 0 && state.itemCount > 0) {
+                val firstChild = recycler.getViewForPosition(0)
+                measureChildWithMargins(firstChild, 0, 0)
+                recycler.recycleView(firstChild)
+            }
+            super.onLayoutChildren(recycler, state)
+        }
+
+        override fun measureChildWithMargins(child: View, widthUsed: Int, heightUsed: Int) {
+            val lp = (child.layoutParams as RecyclerView.LayoutParams).absoluteAdapterPosition
+            super.measureChildWithMargins(child, widthUsed, heightUsed)
+            if (lp != 0 && lp != itemCount - 1) return
+            // after determining first and/or last items size use it to alter host padding
+            when (orientation) {
+                HORIZONTAL -> {
+                    val hPadding = ((width - child.measuredWidth) / 2).coerceAtLeast(0)
+                    if (lp == 0 || lp == itemCount - 1) recyclerView.updatePaddingRelative(start = hPadding, end = hPadding)
+                }
+                VERTICAL -> {
+                    val vPadding = ((height - child.measuredHeight) / 2).coerceAtLeast(0)
+                    if (lp == 0 || lp == itemCount - 1) recyclerView.updatePaddingRelative(top = vPadding, bottom = vPadding)
+                }
+            }
+        }
+
+        // capture host recyclerview
+        override fun onAttachedToWindow(view: RecyclerView) {
+            recyclerView = view
+            super.onAttachedToWindow(view)
+        }
     }
 
     interface Listener {
@@ -592,15 +649,15 @@ class SnapTimePickerDialog : BaseSnapTimePickerDialogFragment() {
 
         fun build(): SnapTimePickerDialog =
             newInstance(
-                selectableTimeRange,
-                preselectedTime,
-                isUseViewModel,
-                title,
-                prefix,
-                suffix,
-                titleColor,
-                themeColor,
-                timeInterval
+                    selectableTimeRange,
+                    preselectedTime,
+                    isUseViewModel,
+                    title,
+                    prefix,
+                    suffix,
+                    titleColor,
+                    themeColor,
+                    timeInterval
             )
     }
 }
